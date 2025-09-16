@@ -1,0 +1,25 @@
+To connect with a node
+interactive -N 1 --gpus=1 -t 05:00:00
+
+To place me in the selected file
+cd 4DFlowNet/src/
+
+Activate the container
+singularity run --nv tensorflow_2.6.1-gpu.sif
+
+Run the code
+python trainer.py
+
+Double exit when in the singularity
+
+Submit a job (written in the doc)
+sbatch job.sbatch
+
+To see information about the submission
+squeue -u x_natbl
+
+Visualize with tensorboard (exit the container) (exit twice ?)
+tensorboard --logdir 4DFlowNet/models/ --port 6006
+
+To install packages when in the container 
+python -m pip install --user matplotlib
