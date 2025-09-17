@@ -10,7 +10,7 @@ def load_indexes(index_file):
 
 if __name__ == "__main__":
     QUICKSAVE = True
-    data_dir = '../../data/aorta_patch12'
+    data_dir = '../../data'
     benchmark_file = f'{data_dir}/aortaTest_patches.csv'
     training_file = f'{data_dir}/aortaTrain_patches.csv'
     validate_file = f'{data_dir}/aortaVal_patches.csv'
@@ -29,9 +29,20 @@ if __name__ == "__main__":
     res_increase = 2
     low_resblock = 8
     hi_resblock = 4
+    n_models = 10 
 
-    # How many ensemble members?
-    n_models = 10  
+    variables = {
+        "initial_learning_rate": initial_learning_rate,
+        "epochs": epochs,
+        "batch_size": batch_size,
+        "mask_threshold": mask_threshold,
+        "rotation": rotation,
+        "patch_size": patch_size,
+        "res_increase": res_increase,
+        "low_resblock": low_resblock,
+        "hi_resblock": hi_resblock,
+        "n_models": n_models
+    }
 
     for model_id in range(n_models):
         print(f"\n===== Training ensemble member {model_id+1}/{n_models} =====")
@@ -67,3 +78,12 @@ if __name__ == "__main__":
         network.model.save(f"{model_outdir}/ensemble_{model_id+1}.h5")
 
     print("\n✅ Ensemble training finished. Models saved in ../models/")
+
+    folder = network.model_dir
+    file_name = os.path.join(folder, "variables.txt")
+
+    print(f"Saving variables to {file_name}...")
+
+    with open(file_name, "w") as f:
+        for name, value in variables.items():
+            f.write(f"{name} = {value}\n")

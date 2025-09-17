@@ -31,7 +31,7 @@ def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
 
 if __name__ == '__main__':
     # Data
-    data_dir = '.;/../data/aorta_patch12'
+    data_dir = '.;/../data'
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
     output_filename = 'aorta_result_DE_M5.h5'

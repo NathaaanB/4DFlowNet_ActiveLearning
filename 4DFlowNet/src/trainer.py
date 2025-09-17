@@ -20,7 +20,7 @@ if __name__ == "__main__":
     #benchmark_file = '{}/benchmark.csv'.format(data_dir)
     QUICKSAVE = True
 
-    data_dir = '../../data/aorta_patch12'
+    data_dir = '../../data'
     benchmark_file = '{}/aortaTest_patches.csv'.format(data_dir)
     training_file = '{}/aortaTrain_patches.csv'.format(data_dir)
     validate_file = '{}/aortaVal_patches.csv'.format(data_dir)
@@ -46,6 +46,18 @@ if __name__ == "__main__":
     # Residual blocks, default (8 LR ResBlocks and 4 HR ResBlocks)
     low_resblock = 8
     hi_resblock = 4
+
+    variables = {
+        "initial_learning_rate": initial_learning_rate,
+        "epochs": epochs,
+        "batch_size": batch_size,
+        "mask_threshold": mask_threshold,
+        "rotation": rotation,
+        "patch_size": patch_size,
+        "res_increase": res_increase,
+        "low_resblock": low_resblock,
+        "hi_resblock": hi_resblock 
+    }
 
     # Load data file and indexes
     trainset = load_indexes(training_file)
@@ -83,3 +95,12 @@ if __name__ == "__main__":
         print("Learning rate", network.optimizer.lr.numpy())
 
     network.train_network(trainset, valset, n_epoch=epochs, testset=testset)
+
+    folder = network.model_dir
+    file_name = os.path.join(folder, "variables.txt")
+
+    print(f"Saving variables to {file_name}...")
+
+    with open(file_name, "w") as f:
+        for name, value in variables.items():
+            f.write(f"{name} = {value}\n")

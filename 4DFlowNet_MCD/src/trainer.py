@@ -12,7 +12,7 @@ def load_indexes(index_file):
 
 if __name__ == "__main__":
     QUICKSAVE = True
-    data_dir = '../../data/aorta_patch12'
+    data_dir = '../../data'
     benchmark_file = '{}/aortaTest_patches.csv'.format(data_dir)
     training_file = '{}/aortaTrain_patches.csv'.format(data_dir)
     validate_file = '{}/aortaVal_patches.csv'.format(data_dir)
@@ -33,6 +33,14 @@ if __name__ == "__main__":
     rotation = 'discrete' #'discrete' or 'affine'
     comments = "Test run with dropout"
 
+     # Network setting
+    network_name = '4DFlowNet'
+    patch_size = 12
+    res_increase = 2
+    # Residual blocks, default (8 LR ResBlocks and 4 HR ResBlocks)
+    low_resblock = 8
+    hi_resblock = 4
+
     variables = {
         "initial_learning_rate": initial_learning_rate,
         "epochs": epochs,
@@ -40,17 +48,12 @@ if __name__ == "__main__":
         "dropout_rate": dropout_rate,
         "mask_threshold": mask_threshold,
         "rotation": rotation,
+        "patch_size": patch_size,
+        "res_increase": res_increase,
+        "low_resblock": low_resblock,
+        "hi_resblock": hi_resblock,
         "comments": comments
     }
-
-
-    # Network setting
-    network_name = '4DFlowNet'
-    patch_size = 12
-    res_increase = 2
-    # Residual blocks, default (8 LR ResBlocks and 4 HR ResBlocks)
-    low_resblock = 8
-    hi_resblock = 4
 
     # Load data file and indexes
     trainset = load_indexes(training_file)
@@ -86,11 +89,11 @@ if __name__ == "__main__":
 
     network.train_network(trainset, valset, n_epoch=epochs, testset=testset)
 
-    dossier = network.model_dir
-    nom_fichier = os.path.join(dossier, "variables.txt")
+    folder = network.model_dir
+    file_name = os.path.join(folder, "variables.txt")
 
-    print(f"Saving variables to {nom_fichier}...")
+    print(f"Saving variables to {file_name}...")
 
-    with open(nom_fichier, "w") as f:
-        for nom, valeur in variables.items():
-            f.write(f"{nom} = {valeur}\n")
+    with open(file_name, "w") as f:
+        for name, value in variables.items():
+            f.write(f"{name} = {value}\n")
