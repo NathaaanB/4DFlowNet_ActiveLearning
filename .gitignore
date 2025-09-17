@@ -9,3 +9,4 @@ torch_2.2.1-gpu.sif
 tensorflow_2.6.1-gpu.sif
 tf_with_tb.sif
 outputfiles/
+4DFlowNet_DE/aorta_result_DE_vtk.vti

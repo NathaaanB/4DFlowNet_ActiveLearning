@@ -18,6 +18,9 @@ def h5_to_vtk(h5_filename, output_basename="velocity_field", index=25):
         u = f["u"][index]     # shape (nx, ny, nz) = (320, 200, 250) for example
         v = f["v"][index]
         w = f["w"][index]
+        u_unc = f["uncertainty_u"][index]
+        v_unc = f["uncertainty_v"][index]
+        w_unc = f["uncertainty_w"][index]
         mask = f[mask_name][:]
     if len(mask.shape) == 4:
         mask = mask[0]
@@ -54,7 +57,10 @@ def h5_to_vtk(h5_filename, output_basename="velocity_field", index=25):
     pointData={},
     cellData={
         "velocity": (u, v, w),
-        mask_name: binary_mask
+        mask_name: binary_mask,
+        "uncertainty_u": u_unc,
+        "uncertainty_v": v_unc,
+        "uncertainty_w": w_unc
     }
     )
 def save_to_h5(output_filepath, col_name, dataset):
@@ -71,6 +77,7 @@ def save_to_h5(output_filepath, col_name, dataset):
         else:
             hf[col_name].resize((hf[col_name].shape[0]) + dataset.shape[0], axis = 0)
             hf[col_name][-dataset.shape[0]:] = dataset
+
 def add_mask(from_h5, to_h5, mask_name="mask_cleaned"):
     with h5py.File(from_h5, 'r') as f:
         mask = f[mask_name][:]
@@ -79,13 +86,11 @@ def add_mask(from_h5, to_h5, mask_name="mask_cleaned"):
         if mask_name in f_out:
             raise ValueError(f"Dataset '{mask_name}' already exists in {to_h5}.")
     save_to_h5(to_h5, mask_name, mask)
+
 if __name__ == "__main__":
-    #h5_filename = "cleaned_masks/KI_250610_V7_OWO_12mm3_original_60.h5"
-    #output_basename = "vtk_files/KI_250610_V7_OWO_12mm3_original_60"
-    h5_filename = "h5_files_250710/KI_250610_V6_OWO_12mm3_SR_pre.h5"
-    output_basename = "vtk_files/KI_250610_V6_OWO_12mm3_SR_pre"
-    #mask_name = "mask_cleaned"
-    mask_name = "tof_mask"
-    #mask_name = "mask"
-    #add_mask(from_h5="h5_files_250710/KI_250610_V6_OWO_06mm3.h5", to_h5=h5_filename, mask_name=mask_name)
-    h5_to_vtk(h5_filename, output_basename, index=2)
+    h5_filename = "4DFlowNet_DE/result/aorta_result_DE.h5"
+    output_basename = "4DFlowNet_DE/aorta_result_DE_vtk"
+
+    mask_name = "mask"
+    #add_mask(from_h5="4DFlowNet_MCD/data/aorta_CFD/aorta03_HR.h5", to_h5=h5_filename, mask_name=mask_name)
+    h5_to_vtk(h5_filename, output_basename, index=1)

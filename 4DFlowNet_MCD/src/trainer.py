@@ -26,9 +26,9 @@ if __name__ == "__main__":
 
     # Hyperparameters optimisation variables
     initial_learning_rate = 1e-4
-    epochs =  1
+    epochs =  100
     batch_size = 20
-    dropout_rate = 0.1
+    dropout_rate = 0.2
     mask_threshold = 0.6
     rotation = 'discrete' #'discrete' or 'affine'
     comments = "Test run with dropout"

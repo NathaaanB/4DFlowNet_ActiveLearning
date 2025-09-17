@@ -53,14 +53,11 @@ class SR4DFlowNet():
 
         # Variance head (predict one variance per channel per voxel)
         var_net = conv3d(rb, 3, channel_nr, 'SYMMETRIC', 'relu')
-        #var_net = tf.keras.layers.Dropout(dropout_rate)(var_net, training=True) #Dropout layer
-        var_net = resnet_block(var_net, "VarBlock1", channel_nr, pad='SYMMETRIC')
-        var_net = conv3d(var_net, 3, channel_nr // 2, 'SYMMETRIC', 'relu')
-        #var_net = conv3d(var_net, 3, 3, 'SYMMETRIC', None)   # raw outputs for 3 channels
+        var_net = tf.keras.layers.Dropout(dropout_rate)(var_net, training=True) #Dropout layer
+        var_net = conv3d(var_net, 3, 3, 'SYMMETRIC', None)   # raw outputs for 3 channels
 
         # transform to positive var (softplus recommended)
-        #logvar_out = var_net
-        logvar_out = conv3d(var_net, 3, 3, 'SYMMETRIC', None)
+        logvar_out = var_net
         #var_out = tf.nn.softplus(logvar_out) + 1e-6
         
 

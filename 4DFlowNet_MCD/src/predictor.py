@@ -31,8 +31,8 @@ if __name__ == '__main__':
     data_dir = '../data/aorta_CFD'
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
-    output_filename = 'Dropout_aorta_data_lessdo.h5'
-    model_path = "../models/4DFlowNet_20250916-1403/4DFlowNet-best.h5"
+    output_filename = 'Dropout_aorta_var_res.h5'
+    model_path = "../models/4DFlowNet_var_res/4DFlowNet-best.h5"
 
     patch_size = 12
     res_increase = 2
