@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # Training hyperparameters
     initial_learning_rate = 2e-4
-    epochs = 50
+    epochs = 80
     batch_size = 20
     mask_threshold = 0.6
     rotation = 'discrete'
@@ -71,11 +71,6 @@ if __name__ == "__main__":
 
         # Train this ensemble member
         network.train_network(trainset, valset, n_epoch=epochs, testset=testset)
-
-        # Save best model in models/ directory
-        model_outdir = "../models"
-        os.makedirs(model_outdir, exist_ok=True)
-        network.model.save(f"{model_outdir}/ensemble_{model_id+1}.h5")
 
     print("\n✅ Ensemble training finished. Models saved in ../models/")
 
