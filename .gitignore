@@ -1,6 +1,5 @@
-4DFlowNet/data/
-4DFlowNet_MCD/data/
-4DFlowNet_DE/data/
+data
+full_data
 4DFlowNet/result/
 4DFlowNet_MCD/result/
 4DFlowNet_DE/result/
@@ -10,3 +9,8 @@ tensorflow_2.6.1-gpu.sif
 tf_with_tb.sif
 outputfiles/
 4DFlowNet_DE/aorta_result_DE_vtk.vti
+terminal_command.txt
+job.sbatch
+job_dropout.sbatch
+job_deep_ensemble.sbatch
+h5_to_vtk.vti

@@ -7,7 +7,6 @@ from Network.PatchGenerator import PatchGenerator
 from utils import prediction_utils
 from utils.ImageDataset import ImageDataset
 
-
 def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
     # Prepare input
     input_shape = (patch_size,patch_size,patch_size,1)
@@ -19,7 +18,7 @@ def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
     v_mag = tf.keras.layers.Input(shape=input_shape, name='v_mag')
     w_mag = tf.keras.layers.Input(shape=input_shape, name='w_mag')
 
-    input_layer = [u,v,w,u_mag, v_mag, w_mag]
+    input_layer = [u, v, w, u_mag, v_mag, w_mag]
 
     # network & output
     net = SR4DFlowNet(res_increase)
@@ -32,7 +31,7 @@ if __name__ == '__main__':
     #data_dir = '../data'
     #filename = 'example_data.h5'
     
-    data_dir = '../data/aorta_CFD'
+    data_dir = '../../data/aorta_patch12'
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
     output_filename = 'aorta_result_model_epoch100.h5'

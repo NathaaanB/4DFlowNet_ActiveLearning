@@ -20,7 +20,7 @@ if __name__ == "__main__":
     #benchmark_file = '{}/benchmark.csv'.format(data_dir)
     QUICKSAVE = True
 
-    data_dir = '../data/aorta_CFD'
+    data_dir = '../../data/aorta_patch12'
     benchmark_file = '{}/aortaTest_patches.csv'.format(data_dir)
     training_file = '{}/aortaTrain_patches.csv'.format(data_dir)
     validate_file = '{}/aortaVal_patches.csv'.format(data_dir)

@@ -3,8 +3,8 @@
 #SBATCH -N 1
 #SBATCH -t 20:00:00
 #SBATCH --mail-type ALL
-#SBATCH --output /proj/multipress/users/x_natbl/outputfiles/output_train_de.out
-#SBATCH --error /proj/multipress/users/x_natbl/outputfiles/output_train_de.err
+#SBATCH --output /proj/multipress/users/x_natbl/4DFlowNet_DE/outputfiles/output_train_de.out
+#SBATCH --error /proj/multipress/users/x_natbl/4DFlowNet_DE/outputfiles/output_train_de.err
 
 cd /proj/multipress/users/x_natbl/4DFlowNet_DE/src
 apptainer exec --nv /proj/multipress/users/x_natbl/tensorflow_2.6.1-gpu.sif python trainer.py

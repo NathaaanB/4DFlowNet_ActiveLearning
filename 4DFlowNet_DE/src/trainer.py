@@ -10,7 +10,7 @@ def load_indexes(index_file):
 
 if __name__ == "__main__":
     QUICKSAVE = True
-    data_dir = '../data/aorta_CFD'
+    data_dir = '../../data/aorta_patch12'
     benchmark_file = f'{data_dir}/aortaTest_patches.csv'
     training_file = f'{data_dir}/aortaTrain_patches.csv'
     validate_file = f'{data_dir}/aortaVal_patches.csv'
