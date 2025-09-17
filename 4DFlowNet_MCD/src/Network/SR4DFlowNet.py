@@ -16,16 +16,16 @@ class SR4DFlowNet():
         pc    = tf.keras.layers.concatenate([pcmr, mag, speed])
         
         pc = conv3d(pc,3,channel_nr, 'SYMMETRIC', 'relu')
-        pc = tf.keras.layers.Dropout(dropout_rate)(pc, training=True) #Dropout layer
+        #pc = tf.keras.layers.Dropout(dropout_rate)(pc, training=True) #Dropout layer
         pc = conv3d(pc,3,channel_nr, 'SYMMETRIC', 'relu')
 
         phase = conv3d(phase,3,channel_nr, 'SYMMETRIC', 'relu')
-        phase = tf.keras.layers.Dropout(dropout_rate)(phase, training=True) #Dropout layer
+        #phase = tf.keras.layers.Dropout(dropout_rate)(phase, training=True) #Dropout layer
         phase = conv3d(phase,3,channel_nr, 'SYMMETRIC', 'relu')
 
         concat_layer = tf.keras.layers.concatenate([phase, pc])
         concat_layer = conv3d(concat_layer, 1, channel_nr, 'SYMMETRIC', 'relu')
-        concat_layer = tf.keras.layers.Dropout(dropout_rate)(concat_layer, training=True) #Dropout layer
+        #concat_layer = tf.keras.layers.Dropout(dropout_rate)(concat_layer, training=True) #Dropout layer
         concat_layer = conv3d(concat_layer, 3, channel_nr, 'SYMMETRIC', 'relu')
         
         # res blocks
@@ -53,11 +53,14 @@ class SR4DFlowNet():
 
         # Variance head (predict one variance per channel per voxel)
         var_net = conv3d(rb, 3, channel_nr, 'SYMMETRIC', 'relu')
-        var_net = tf.keras.layers.Dropout(dropout_rate)(var_net, training=True) #Dropout layer
-        var_net = conv3d(var_net, 3, 3, 'SYMMETRIC', None)   # raw outputs for 3 channels
+        #var_net = tf.keras.layers.Dropout(dropout_rate)(var_net, training=True) #Dropout layer
+        var_net = resnet_block(var_net, "VarBlock1", channel_nr, pad='SYMMETRIC')
+        var_net = conv3d(var_net, 3, channel_nr // 2, 'SYMMETRIC', 'relu')
+        #var_net = conv3d(var_net, 3, 3, 'SYMMETRIC', None)   # raw outputs for 3 channels
 
         # transform to positive var (softplus recommended)
-        logvar_out = var_net  # optionally treat var_net as logvar
+        #logvar_out = var_net
+        logvar_out = conv3d(var_net, 3, 3, 'SYMMETRIC', None)
         #var_out = tf.nn.softplus(logvar_out) + 1e-6
         
 

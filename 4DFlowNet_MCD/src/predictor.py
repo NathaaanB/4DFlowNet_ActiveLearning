@@ -31,8 +31,8 @@ if __name__ == '__main__':
     data_dir = '../data/aorta_CFD'
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
-    output_filename = 'Dropout_aorta_data5.h5'
-    model_path = "../models/4DFlowNet_test_20250915-1551/4DFlowNet_test-best.h5"
+    output_filename = 'Dropout_aorta_data_lessdo.h5'
+    model_path = "../models/4DFlowNet_20250916-1403/4DFlowNet-best.h5"
 
     patch_size = 12
     res_increase = 2
@@ -122,7 +122,7 @@ if __name__ == '__main__':
             # Epistemic uncertainty
             v_epi = pgen._patchup_with_overlap(results_epi_unc[..., i], pgen.nr_x, pgen.nr_y, pgen.nr_z)
             v_epi = np.expand_dims(v_epi, axis=0)
-            prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', f"{dataset.velocity_colnames[i]}_epi_unc", v_epi, compression='gzip')
+            prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', f"uncertainty_{dataset.velocity_colnames[i]}", v_epi, compression='gzip')
 
         # Save new spacing if available
         if dataset.dx is not None:

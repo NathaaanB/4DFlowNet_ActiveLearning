@@ -15,7 +15,7 @@ from . import utility, h5util, loss_utils
 
 class TrainerController:
     # constructor
-    def __init__(self, patch_size, res_increase, initial_learning_rate=1e-4, quicksave_enable=True, network_name='4DFlowNet', low_resblock=8, hi_resblock=4):
+    def __init__(self, patch_size, res_increase, initial_learning_rate=1e-4, quicksave_enable=True, network_name='4DFlowNet', low_resblock=8, hi_resblock=4, dropout_rate=0.1, channel_nr = 64):
         """
             TrainerController constructor
             Setup all the placeholders, network graph, loss functions and optimizer here.
@@ -45,7 +45,7 @@ class TrainerController:
 
         input_layer = [u, v, w, u_mag, v_mag, w_mag]
         net = SR4DFlowNet(res_increase)
-        self.predictions = net.build_network(u, v, w, u_mag, v_mag, w_mag, low_resblock, hi_resblock)
+        self.predictions = net.build_network(u, v, w, u_mag, v_mag, w_mag, low_resblock, hi_resblock, channel_nr, dropout_rate)
         self.model = tf.keras.Model(input_layer, self.predictions)
 
         # ===== Metrics =====

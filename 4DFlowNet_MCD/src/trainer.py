@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from Network.PatchHandler3D import PatchHandler3D
 from Network.TrainerController import TrainerController
 
@@ -21,14 +22,27 @@ if __name__ == "__main__":
     restore = False
     if restore:
         model_dir = "../models/4DFlowNet_model"
-        model_file = "4DFlowNet-best.h5"
+        model_file = "4DFlowNet-best.h5" 
 
     # Hyperparameters optimisation variables
     initial_learning_rate = 1e-4
-    epochs =  100
+    epochs =  1
     batch_size = 20
+    dropout_rate = 0.1
     mask_threshold = 0.6
     rotation = 'discrete' #'discrete' or 'affine'
+    comments = "Test run with dropout"
+
+    variables = {
+        "initial_learning_rate": initial_learning_rate,
+        "epochs": epochs,
+        "batch_size": batch_size,
+        "dropout_rate": dropout_rate,
+        "mask_threshold": mask_threshold,
+        "rotation": rotation,
+        "comments": comments
+    }
+
 
     # Network setting
     network_name = '4DFlowNet'
@@ -62,7 +76,7 @@ if __name__ == "__main__":
 
     # ------- Main Network ------
     print(f"4DFlowNet Patch {patch_size}, lr {initial_learning_rate}, batch {batch_size}")
-    network = TrainerController(patch_size, res_increase, initial_learning_rate, QUICKSAVE, network_name, low_resblock, hi_resblock)
+    network = TrainerController(patch_size, res_increase, initial_learning_rate, QUICKSAVE, network_name, low_resblock, hi_resblock, dropout_rate)
     network.init_model_dir()
 
     if restore:
@@ -71,3 +85,12 @@ if __name__ == "__main__":
         print("Learning rate", network.optimizer.lr.numpy())
 
     network.train_network(trainset, valset, n_epoch=epochs, testset=testset)
+
+    dossier = network.model_dir
+    nom_fichier = os.path.join(dossier, "variables.txt")
+
+    print(f"Saving variables to {nom_fichier}...")
+
+    with open(nom_fichier, "w") as f:
+        for nom, valeur in variables.items():
+            f.write(f"{nom} = {valeur}\n")
