@@ -47,6 +47,8 @@ if __name__ == "__main__":
     low_resblock = 8
     hi_resblock = 4
 
+    comments = "Test run"
+
     variables = {
         "initial_learning_rate": initial_learning_rate,
         "epochs": epochs,
@@ -56,7 +58,8 @@ if __name__ == "__main__":
         "patch_size": patch_size,
         "res_increase": res_increase,
         "low_resblock": low_resblock,
-        "hi_resblock": hi_resblock 
+        "hi_resblock": hi_resblock,
+        "comments": comments
     }
 
     # Load data file and indexes

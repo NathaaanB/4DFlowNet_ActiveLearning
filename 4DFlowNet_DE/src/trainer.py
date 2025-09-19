@@ -29,7 +29,9 @@ if __name__ == "__main__":
     res_increase = 2
     low_resblock = 8
     hi_resblock = 4
-    n_models = 10 
+    n_models = 10
+
+    comments = "Ensemble training with 10 models, discrete rotation, 80 epochs each."
 
     variables = {
         "initial_learning_rate": initial_learning_rate,
@@ -41,7 +43,8 @@ if __name__ == "__main__":
         "res_increase": res_increase,
         "low_resblock": low_resblock,
         "hi_resblock": hi_resblock,
-        "n_models": n_models
+        "n_models": n_models,
+        "comments": comments
     }
 
     for model_id in range(n_models):
@@ -72,13 +75,15 @@ if __name__ == "__main__":
         # Train this ensemble member
         network.train_network(trainset, valset, n_epoch=epochs, testset=testset)
 
+        folder = network.model_dir
+        file_name = os.path.join(folder, "variables.txt")
+
+        print(f"Saving variables to {file_name}...")
+
+        with open(file_name, "w") as f:
+            for name, value in variables.items():
+                f.write(f"{name} = {value}\n")
+
+
     print("\n✅ Ensemble training finished. Models saved in ../models/")
 
-    folder = network.model_dir
-    file_name = os.path.join(folder, "variables.txt")
-
-    print(f"Saving variables to {file_name}...")
-
-    with open(file_name, "w") as f:
-        for name, value in variables.items():
-            f.write(f"{name} = {value}\n")

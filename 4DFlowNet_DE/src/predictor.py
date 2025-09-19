@@ -31,11 +31,11 @@ def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
 
 if __name__ == '__main__':
     # Data
-    data_dir = '.;/../data'
+    data_dir = '../../data'
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
-    output_filename = 'aorta_result_DE_M5.h5'
-    number_of_ensembles = 5
+    output_filename = 'aorta_result_DE_M10.h5'
+    number_of_ensembles = 10
 
     # Ensemble model paths
     model_paths = [f"../models/4DFlowNet_ensemble_{i}/4DFlowNet_ensemble_{i}-best.h5" for i in range(1, number_of_ensembles + 1)]
