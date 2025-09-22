@@ -1,11 +1,57 @@
 import tensorflow as tf
-from tensorflow.keras.layers import SpatialDropout3D
+from tensorflow.keras.layers import Layer
+
+class ConcreteDropout(Layer):
+    def __init__(self, weight_regularizer=1e-6, dropout_regularizer=1e-5, init_min=0.1, init_max=0.1, **kwargs):
+        super(ConcreteDropout, self).__init__(**kwargs)
+        self.weight_regularizer = weight_regularizer
+        self.dropout_regularizer = dropout_regularizer
+        self.init_min = init_min
+        self.init_max = init_max
+
+    def build(self, input_shape):
+        # logit_p is a trainable parameter
+        init_p = tf.random.uniform([], minval=self.init_min, maxval=self.init_max)
+        self.logit_p = tf.Variable(tf.math.log(init_p) - tf.math.log(1. - init_p),
+                                   trainable=True, name="logit_p")
+
+    def call(self, inputs, training=None):
+        # Convert logit to probability
+        p = tf.sigmoid(self.logit_p)
+
+        if training:
+            eps = 1e-7
+            # Sample from Concrete distribution
+            unif_noise = tf.random.uniform(tf.shape(inputs))
+            drop_prob = (tf.math.log(p + eps)
+                         - tf.math.log(1. - p + eps)
+                         + tf.math.log(unif_noise + eps)
+                         - tf.math.log(1. - unif_noise + eps))
+            drop_prob = tf.sigmoid(drop_prob / 0.1)  # temperature = 0.1
+            random_tensor = 1. - drop_prob
+            retain_prob = 1. - p
+            inputs = inputs * random_tensor / retain_prob
+        return inputs
+
+    def get_dropout_prob(self):
+        return tf.sigmoid(self.logit_p)
+    
+def concrete_regularizer(layer, inputs):
+    p = layer.get_dropout_prob()
+    # L2 penalty for weights
+    weight_reg = layer.weight_regularizer * tf.reduce_sum(tf.square(inputs))
+    # Regularization on dropout probability
+    dropout_reg = p * tf.math.log(p + 1e-7) + (1. - p) * tf.math.log(1. - p + 1e-7)
+    dropout_reg *= layer.dropout_regularizer * tf.cast(tf.size(inputs), tf.float32)
+    return weight_reg + dropout_reg
+
+
 
 class SR4DFlowNet():
     def __init__(self, res_increase):
         self.res_increase = res_increase
 
-    def build_network(self, u, v, w, u_mag, v_mag, w_mag, low_resblock=8, hi_resblock=4, channel_nr=64, dropout_rate=0.1):
+    def build_network(self, u, v, w, u_mag, v_mag, w_mag, low_resblock=8, hi_resblock=4, channel_nr=64, dropout_rate=0.1, concrete_dropout=False):
         channel_nr = 64
 
         speed = (u ** 2 + v ** 2 + w ** 2) ** 0.5
@@ -32,14 +78,30 @@ class SR4DFlowNet():
         rb = concat_layer
         for i in range(low_resblock):
             rb = resnet_block(rb, "ResBlock", channel_nr, pad='SYMMETRIC')
-            rb = tf.keras.layers.Dropout(dropout_rate)(rb, training=True) #Dropout layer
+
+            ### Use Concrete Dropout or fixed Dropout
+            if concrete_dropout:
+                drop_layer = ConcreteDropout(weight_regularizer=1e-6, dropout_regularizer=1e-5)
+                rb = drop_layer(rb, training=True)
+                self.add_loss(concrete_regularizer(drop_layer, rb))
+            
+            else:
+                rb = tf.keras.layers.Dropout(dropout_rate)(rb, training=True) #Dropout layer
 
         rb = upsample3d(rb, self.res_increase)
             
         # refinement in HR
         for i in range(hi_resblock):
             rb = resnet_block(rb, "ResBlock", channel_nr, pad='SYMMETRIC')
-            rb = tf.keras.layers.Dropout(dropout_rate)(rb, training=True) #Dropout layer
+
+            ### Use Concrete Dropout or fixed Dropout
+            if concrete_dropout:
+                drop_layer = ConcreteDropout(weight_regularizer=1e-6, dropout_regularizer=1e-5)
+                rb = drop_layer(rb, training=True)
+                self.add_loss(concrete_regularizer(drop_layer, rb))
+
+            else :
+                rb = tf.keras.layers.Dropout(dropout_rate)(rb, training=True) #Dropout layer
 
         # 3 separate path version
         u_path = conv3d(rb, 3, channel_nr, 'SYMMETRIC', 'relu')
@@ -57,13 +119,13 @@ class SR4DFlowNet():
         var_net = conv3d(var_net, 3, 3, 'SYMMETRIC', None)   # raw outputs for 3 channels
 
         # transform to positive var (softplus recommended)
-        logvar_out = var_net
+        var_out = var_net
         #var_out = tf.nn.softplus(logvar_out) + 1e-6
         
 
         b_out = tf.keras.layers.concatenate([u_path, v_path, w_path])
 
-        return b_out, logvar_out
+        return b_out, var_out
 
 def upsample3d(input_tensor, res_increase):
     """

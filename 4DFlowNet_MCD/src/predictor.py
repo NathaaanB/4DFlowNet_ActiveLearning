@@ -31,8 +31,8 @@ if __name__ == '__main__':
     data_dir = '../../data'
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
-    output_filename = 'Dropout_aorta_mid_dr.h5'
-    model_path = "../models/4DFlowNet_20250918-1148/4DFlowNet-best.h5"
+    output_filename = 'Dropout_aorta_dr10_lr1e-5.h5'
+    model_path = "../models/4DFlowNet_dr10_lr1e-5/4DFlowNet-best.h5"
 
     patch_size = 12
     res_increase = 2
@@ -53,7 +53,6 @@ if __name__ == '__main__':
     print(f"Loading 4DFlowNet: {res_increase}x upsample")
     network = prepare_network(patch_size, res_increase, low_resblock, hi_resblock)
     network.load_weights(model_path)
-    network.summary()
 
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)

@@ -21,17 +21,17 @@ if __name__ == "__main__":
 
     restore = False
     if restore:
-        model_dir = "../models/4DFlowNet_model"
+        model_dir = "../models/4DFlowNet_model_cd"
         model_file = "4DFlowNet-best.h5" 
 
     # Hyperparameters optimisation variables
     initial_learning_rate = 1e-5
     epochs =  100
     batch_size = 20
-    dropout_rate = 0.15
+    dropout_rate = 0.20
     mask_threshold = 0.6
     rotation = 'discrete' #'discrete' or 'affine'
-    comments = "Test run with dropout"
+    comments = "Grid search"
 
      # Network setting
     network_name = '4DFlowNet'
@@ -40,6 +40,7 @@ if __name__ == "__main__":
     # Residual blocks, default (8 LR ResBlocks and 4 HR ResBlocks)
     low_resblock = 8
     hi_resblock = 4
+    concrete_dropout = False
 
     variables = {
         "initial_learning_rate": initial_learning_rate,
@@ -79,7 +80,7 @@ if __name__ == "__main__":
 
     # ------- Main Network ------
     print(f"4DFlowNet Patch {patch_size}, lr {initial_learning_rate}, batch {batch_size}")
-    network = TrainerController(patch_size, res_increase, initial_learning_rate, QUICKSAVE, network_name, low_resblock, hi_resblock, dropout_rate)
+    network = TrainerController(patch_size, res_increase, initial_learning_rate, QUICKSAVE, network_name, low_resblock, hi_resblock, dropout_rate, concrete_dropout)
     network.init_model_dir()
 
     if restore:
