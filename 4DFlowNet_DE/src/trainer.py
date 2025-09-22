@@ -33,7 +33,17 @@ if __name__ == "__main__":
 
     comments = "Ensemble training with 10 models, discrete rotation, 80 epochs each."
 
-    variables = {
+    for model_id in range(n_models):
+
+        print(f"\n===== Training ensemble member {model_id+1}/{n_models} =====")
+
+        # Different random seeds for diversity
+        tf.random.set_seed(model_id * 100 + 7)
+        np.random.seed(model_id * 100 + 13)
+
+        initial_learning_rate = np.random.uniform(1e-4, 4e-4) #more diversity in ensemble
+
+        variables = {
         "initial_learning_rate": initial_learning_rate,
         "epochs": epochs,
         "batch_size": batch_size,
@@ -43,16 +53,8 @@ if __name__ == "__main__":
         "res_increase": res_increase,
         "low_resblock": low_resblock,
         "hi_resblock": hi_resblock,
-        "n_models": n_models,
-        "comments": comments
-    }
-
-    for model_id in range(n_models):
-        print(f"\n===== Training ensemble member {model_id+1}/{n_models} =====")
-
-        # Different random seeds for diversity
-        tf.random.set_seed(model_id * 100 + 7)
-        np.random.seed(model_id * 100 + 13)
+        "model": f"{model_id}/{n_models}",
+        "comments": comments}
 
         # Reload datasets for each model (to reshuffle differently each time)
         ph_train = PatchHandler3D(data_dir, patch_size, res_increase, batch_size, rotation, mask_threshold)
