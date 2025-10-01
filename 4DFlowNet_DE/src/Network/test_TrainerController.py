@@ -15,7 +15,7 @@ from . import utility, h5util, loss_utils
 
 class TrainerController:
     # constructor
-    def __init__(self, patch_size, res_increase, initial_learning_rate=1e-4, quicksave_enable=True, network_name='4DFlowNet', low_resblock=8, hi_resblock=4, dropout_rate=0.1, concrete_dropout = False, channel_nr = 64):
+    def __init__(self, patch_size, res_increase, initial_learning_rate=1e-4, quicksave_enable=True, network_name='4DFlowNet', low_resblock=8, hi_resblock=4):
         """
             TrainerController constructor
             Setup all the placeholders, network graph, loss functions and optimizer here.
@@ -32,7 +32,7 @@ class TrainerController:
         # Network
         self.network_name = network_name
 
-        input_shape = (patch_size, patch_size, patch_size, 1)
+        input_shape = (patch_size,patch_size,patch_size,1)
 
         # Prepare Input 
         u = tf.keras.layers.Input(shape=input_shape, name='u')
@@ -43,11 +43,9 @@ class TrainerController:
         v_mag = tf.keras.layers.Input(shape=input_shape, name='v_mag')
         w_mag = tf.keras.layers.Input(shape=input_shape, name='w_mag')
 
-        input_layer = [u, v, w, u_mag, v_mag, w_mag]
+        input_layer = [u,v,w,u_mag, v_mag, w_mag]
         net = SR4DFlowNet(res_increase)
-        self.predictions = net.build_network(u, v, w, u_mag, v_mag, w_mag, low_resblock, hi_resblock, channel_nr, dropout_rate, concrete_dropout)
-        
-        # Define the model
+        self.predictions = net.build_network(u, v, w, u_mag, v_mag, w_mag, low_resblock, hi_resblock)
         self.model = tf.keras.Model(input_layer, self.predictions)
 
         # ===== Metrics =====
@@ -88,9 +86,8 @@ class TrainerController:
             Calculate Total Loss function
             Loss = MSE + weight * div_loss2
         """
-
-        u, v, w = y_true[...,0], y_true[...,1], y_true[...,2]
-        u_pred, v_pred, w_pred = y_pred[...,0], y_pred[...,1], y_pred[...,2]
+        u, v,w = y_true[...,0],y_true[...,1], y_true[...,2]
+        u_pred,v_pred,w_pred = y_pred[...,0],y_pred[...,1], y_pred[...,2]
 
         mse = self.calculate_mse(u,v,w, u_pred,v_pred,w_pred)
 
@@ -176,25 +173,6 @@ class TrainerController:
         # summary - Tensorboard stuff
         self._prepare_logfile_and_summary()
     
-    def mc_dropout_predict(model, inputs, n_samples=30):
-        predictions = []
-        aleatoric_preds = []
-
-        for _ in range(n_samples):
-            b_out, logvar_out = model(inputs, training=True)
-            predictions.append(b_out.numpy())
-            aleatoric_preds.append(logvar_out.numpy())
-
-        predictions = np.stack(predictions, axis=0)
-        aleatoric_preds = np.stack(aleatoric_preds, axis=0)
-
-        mean_pred = predictions.mean(axis=0)
-        epistemic_uncertainty = predictions.var(axis=0)
-        aleatoric_uncertainty = aleatoric_preds.mean(axis=0)
-
-        return mean_pred, epistemic_uncertainty, aleatoric_uncertainty
-
-
     def _prepare_logfile_and_summary(self):
         """
             Prepare csv logfile to keep track of the loss and Tensorboard summaries
@@ -227,24 +205,6 @@ class TrainerController:
 
                     shutil.copy2(f"{directory}/{fname}", dest_fpath)
 
-    #@tf.function
-    #def train_step(self, data_pairs):
-    #    u, v, w, u_hr,v_hr, w_hr, u_mag, v_mag, w_mag, venc, mask = data_pairs
-    #    hires = tf.concat((u_hr, v_hr, w_hr), axis=-1)
-#
-    #    with tf.GradientTape() as tape:
-            # training=True is only needed if there are layers with different
-            # behavior during training versus inference (e.g. Dropout).
-     #       print(u_mag.shape, v_mag.shape, w_mag.shape)
-    #        input_data = [u, v, w, u_mag, v_mag, w_mag]
-    #        predictions = self.model(input_data, training=True)
-    #        loss = self.calculate_and_update_metrics(hires, predictions, mask, 'train')
-            
-        # Get the gradients
-    #    gradients = tape.gradient(loss, self.model.trainable_variables)
-        # Update the weights
-    #    self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
-
     @tf.function
     def train_step(self, data_pairs):
         u, v, w, u_hr,v_hr, w_hr, u_mag, v_mag, w_mag, venc, mask = data_pairs
@@ -263,7 +223,6 @@ class TrainerController:
         # Update the weights
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
 
-
     @tf.function
     def test_step(self, data_pairs):
         u, v, w, u_hr,v_hr, w_hr, u_mag, v_mag, w_mag, venc, mask = data_pairs
@@ -276,53 +235,7 @@ class TrainerController:
         self.calculate_and_update_metrics(hires, predictions, mask, 'val')
        
         return predictions
-    
-    def calculate_and_update_metrics(self, hires, predictions, mask, metric_set):
-        # If predictions is a tuple (mean, logvar), extract mean for metrics
-        if isinstance(predictions, tuple):
-            mu_pred, logvar_pred = predictions
-        else:
-            mu_pred = predictions
-            logvar_pred = None
 
-        # Compute main loss (Gaussian NLL if logvar_pred is provided)
-        if logvar_pred is not None:
-            # Gaussian NLL loss
-            var_pred = tf.nn.softplus(logvar_pred) + 1e-6
-            sq_err = tf.square(hires - mu_pred)
-            nll_per_voxel = 0.5 * (sq_err / var_pred + tf.math.log(var_pred))
-            if mask is not None:
-                mask_f = tf.cast(mask, tf.float32)
-                mask_f = tf.expand_dims(mask_f, axis=-1)  # broadcast to channels
-                nll_per_voxel = nll_per_voxel * mask_f
-                loss = tf.reduce_sum(nll_per_voxel) / (tf.reduce_sum(mask_f) + 1e-12)
-            else:
-                loss = tf.reduce_mean(nll_per_voxel)
-            mse = tf.reduce_mean(sq_err)
-            divloss = 0.0  # optional: compute divergence if needed
-        else:
-            # fallback to old loss_function
-            loss, mse, divloss = self.loss_function(hires, mu_pred, mask)
-
-        # Relative error on mean prediction
-        rel_error = self.accuracy_function(hires, mu_pred, mask)
-
-        # L2 regularization for training
-        if metric_set == 'train':
-            l2_reg_loss = self.calculate_regularizer_loss()
-            self.loss_metrics[f'l2_reg_loss'].update_state(l2_reg_loss)
-            loss += l2_reg_loss
-
-        # Update the loss and accuracy metrics
-        self.loss_metrics[f'{metric_set}_loss'].update_state(loss)
-        self.loss_metrics[f'{metric_set}_mse'].update_state(mse)
-        self.loss_metrics[f'{metric_set}_div'].update_state(divloss)
-        self.loss_metrics[f'{metric_set}_accuracy'].update_state(rel_error)
-
-        return loss
-
-
-    """
     def calculate_and_update_metrics(self, hires, predictions, mask, metric_set):
         loss, mse, divloss = self.loss_function(hires, predictions, mask)
         rel_error = self.accuracy_function(hires, predictions, mask)
@@ -340,12 +253,12 @@ class TrainerController:
         self.loss_metrics[f'{metric_set}_div'].update_state(divloss)
         self.loss_metrics[f'{metric_set}_accuracy'].update_state(rel_error)
         return loss
-    """
+
     def reset_metrics(self):
         for key in self.loss_metrics.keys():
             self.loss_metrics[key].reset_states()
 
-    def train_network(self, trainset, valset, n_epoch, testset=None):
+    def train_network(self, trainset, valset, n_epoch_wo_AL, testset=None):
         """
             Main training function. Receives trainining and validation TF dataset.
         """
@@ -360,7 +273,92 @@ class TrainerController:
         total_batch_train = tf.data.experimental.cardinality(trainset).numpy()
         total_batch_val = tf.data.experimental.cardinality(valset).numpy()
 
-        for epoch in range(n_epoch):
+        for epoch in range(n_epoch_wo_AL):
+            print("Epoch :", epoch)
+            # ------------------------------- Training -------------------------------
+            # self.adjust_learning_rate(epoch)
+
+            # Reset the metrics at the start of the next epoch
+            self.reset_metrics()
+
+            start_loop = time.time()
+            # --- Training ---
+            for i, data_pairs in enumerate(trainset):
+                # Train the network
+                self.train_step(data_pairs)
+                message = f"Epoch {epoch+1} Train batch {i+1}/{total_batch_train} | loss: {self.loss_metrics['train_loss'].result():.5f} ({self.loss_metrics['train_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
+                print(f"\r{message}", end='')
+
+            # --- Validation ---
+            for i, data_pairs in enumerate(valset):
+                self.test_step(data_pairs)
+                message = f"Epoch {epoch+1} Validation batch {i+1}/{total_batch_val} | loss: {self.loss_metrics['val_loss'].result():.5f} ({self.loss_metrics['val_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
+                print(f"\r{message}", end='')
+
+            # --- Epoch logging ---
+            message = f"\rEpoch {epoch+1} Train loss: {self.loss_metrics['train_loss'].result():.5f} ({self.loss_metrics['train_accuracy'].result():.1f} %), Val loss: {self.loss_metrics['val_loss'].result():.5f} ({self.loss_metrics['val_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
+            
+            loss_values = []
+            # Get the loss values from the loss_metrics dict
+            for key, value in self.loss_metrics.items():
+                # TODO: handle formatting here
+                loss_values.append(f'{value.result():.5f}')
+            loss_str = ','.join(loss_values)
+            log_line = f"{epoch+1},{loss_str},{self.optimizer.lr.numpy():.6f},{time.time()-start_loop:.1f}"
+            
+
+            self._update_summary_logging(epoch)
+
+            # --- Save criteria ---
+            if self.loss_metrics[self.accuracy_metric].result() < previous_loss:
+                self.save_best_model()
+                
+                # Update best acc
+                previous_loss = self.loss_metrics[self.accuracy_metric].result()
+                
+                # logging
+                message  += ' **' # Mark as saved
+                log_line += ',**'
+
+                # Benchmarking
+                if self.QUICKSAVE_ENABLED and testset is not None:
+                    quick_loss, quick_accuracy, quick_mse, quick_div = self.quicksave(testset, epoch+1)
+                    quick_loss, quick_accuracy, quick_mse, quick_div = np.mean(quick_loss), np.mean(quick_accuracy), np.mean(quick_mse), np.mean(quick_div)
+
+                    message  += f' Benchmark loss: {quick_loss:.5f} ({quick_accuracy:.1f} %)'
+                    log_line += f', {quick_loss:.7f}, {quick_accuracy:.2f}%, {quick_mse:.7f}, {quick_div:.7f}'
+            # Logging
+            print(message)
+            utility.log_to_file(self.logfile, log_line+"\n")
+            # /END of epoch loop
+
+        # End
+        hrs, mins, secs = utility.calculate_time_elapsed(start_time)
+        message =  f"\nTraining {self.network_name} completed! - name: {self.unique_model_name}"
+        message += f"\nTotal training time: {hrs} hrs {mins} mins {secs} secs."
+        message += f"\nFinished at {time.ctime()}"
+        message += f"\n==================== END TRAINING ================="
+        utility.log_to_file(self.logfile, message)
+        print(message)
+        
+        # Finish!
+
+    def train_network_AL(self, trainset, valset, n_epoch_w_AL, testset=None):
+        """
+            Main training function. Receives trainining and validation TF dataset.
+        """
+        # ----- Run the training -----
+        print("==================== TRAINING =================")
+        print(f'Learning rate {self.optimizer.lr.numpy():.7f}')
+        print(f"Start training at {time.ctime()} - {self.unique_model_name}\n")
+        start_time = time.time()
+        
+        # Setup acc and data count
+        previous_loss = np.inf
+        total_batch_train = tf.data.experimental.cardinality(trainset).numpy()
+        total_batch_val = tf.data.experimental.cardinality(valset).numpy()
+
+        for epoch in range(n_epoch_w_AL):
             print("Epoch :", epoch)
             # ------------------------------- Training -------------------------------
             # self.adjust_learning_rate(epoch)
@@ -505,11 +503,11 @@ class TrainerController:
             Quicksave is done everytime the best model is saved.
         """
         for i, (data_pairs) in enumerate(testset):
-            u, v, w, u_hr, v_hr, w_hr, u_mag, v_mag, w_mag, venc, mask = data_pairs
+            u, v, w, u_hr,v_hr, w_hr, u_mag, v_mag, w_mag, venc, mask = data_pairs
             hires = tf.concat((u_hr, v_hr, w_hr), axis=-1)
-            input_data = [u, v, w, u_mag, v_mag, w_mag]
+            input_data = [u,v,w, u_mag, v_mag, w_mag]
 
-            preds, logvar_pred = self.model.predict(input_data)
+            preds = self.model.predict(input_data)
 
             loss_val, mse, divloss = self.loss_function(hires, preds, mask)
             rel_loss = self.accuracy_function(hires, preds, mask)

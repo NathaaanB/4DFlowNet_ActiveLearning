@@ -6,6 +6,7 @@ from Network.SR4DFlowNet import SR4DFlowNet
 from Network.PatchGenerator import PatchGenerator
 from utils import prediction_utils
 from utils.ImageDataset import ImageDataset
+import h5py
 
 
 def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
@@ -32,6 +33,7 @@ def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
 if __name__ == '__main__':
     # Data
     data_dir = '../../data'
+    gt_dir = "../../data/aorta03_HR.h5"
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
     output_filename = 'aorta_result_DE_M10.h5'
@@ -88,6 +90,7 @@ if __name__ == '__main__':
 
         all_preds = []
         all_uncertainties = []
+        results_all_preds = []
 
         start_time = time.time()
         for current_idx in range(0, data_size, batch_size):
@@ -99,18 +102,19 @@ if __name__ == '__main__':
             # Collect predictions from all ensemble members
             ensemble_outputs = []
             for net in models:
-                sr_images = net.predict([
+                sr_images = net([
                     velocities[0][patch_index],
                     velocities[1][patch_index],
                     velocities[2][patch_index],
                     magnitudes[0][patch_index],
                     magnitudes[1][patch_index],
                     magnitudes[2][patch_index]
-                ], verbose=0)
+                ], training=False)
                 ensemble_outputs.append(sr_images)
 
             # Shape (n_models, batch, X, Y, Z, 3)
             ensemble_outputs = np.stack(ensemble_outputs, axis=0)
+            results_all_preds.append(ensemble_outputs)
 
             # Mean and variance
             mean_pred = np.mean(ensemble_outputs, axis=0)
@@ -140,11 +144,18 @@ if __name__ == '__main__':
                                         f"uncertainty_{dataset.velocity_colnames[i]}",
                                         v_unc, compression='gzip')
 
+           
+            with h5py.File(gt_dir, "r") as f_gt:
+                gt = np.squeeze(f_gt[f'{dataset.velocity_colnames[i]}'][()])   # ground truth 3D volume
+                pred = np.squeeze(v)         # our current prediction for this component
+                error_voxel = np.abs(pred - gt) 
+                prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', f"error_{dataset.velocity_colnames[i]}", error_voxel, compression='gzip')
+
         # Save voxel spacing
         if dataset.dx is not None:
             new_spacing = dataset.dx / res_increase
             new_spacing = np.expand_dims(new_spacing, axis=0)
             prediction_utils.save_to_h5(f'{output_dir}/{output_filename}',
                                         dataset.dx_colname, new_spacing, compression='gzip')
-
-    print("Done!")
+            
+print('Done!')

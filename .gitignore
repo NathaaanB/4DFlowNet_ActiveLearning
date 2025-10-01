@@ -8,6 +8,8 @@ data
 4DFlowNet/outputfiles/
 4DFlowNet_MCD/outputfiles/
 4DFlowNet_DE/outputfiles/
+4DFlowNet_MCD/src/metrics
+4DFlowNet_DE/src/metrics
 sr3d_results.h5
 torch_2.2.1-gpu.sif
 tensorflow_2.6.1-gpu.sif

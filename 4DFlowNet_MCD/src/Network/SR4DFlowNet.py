@@ -45,8 +45,6 @@ def concrete_regularizer(layer, inputs):
     dropout_reg *= layer.dropout_regularizer * tf.cast(tf.size(inputs), tf.float32)
     return weight_reg + dropout_reg
 
-
-
 class SR4DFlowNet():
     def __init__(self, res_increase):
         self.res_increase = res_increase
