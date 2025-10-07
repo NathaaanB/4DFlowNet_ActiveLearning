@@ -36,11 +36,12 @@ if __name__ == '__main__':
     gt_dir = "../../data/aorta03_HR.h5"
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
-    output_filename = 'aorta_result_DE_M10.h5'
     number_of_ensembles = 10
+    output_filename = 'aorta_result_DE_M10_bis.h5'
+
 
     # Ensemble model paths
-    model_paths = [f"../models/4DFlowNet_ensemble_{i}/4DFlowNet_ensemble_{i}-best.h5" for i in range(1, number_of_ensembles + 1)]
+    model_paths = [f"../models/4DFlowNet_ensemble_{i}/4DFlowNet_ensemble_{i}-best.h5" for i in range(11, 2*number_of_ensembles + 1)]
     
     patch_size = 12
     res_increase = 2
@@ -123,6 +124,18 @@ if __name__ == '__main__':
             all_preds.append(mean_pred)
             all_uncertainties.append(var_pred)
 
+        """results = np.concatenate(results_all_preds, axis=1)
+        for n in range(number_of_ensembles):
+            results_n = results[n]
+            for i in range(3):
+                v = pgen._patchup_with_overlap(results_n[..., i], pgen.nr_x, pgen.nr_y, pgen.nr_z)
+                v = v * dataset.venc
+                if round_small_values:
+                    v[np.abs(v) < dataset.velocity_per_px] = 0
+                v = np.expand_dims(v, axis=0)
+                prediction_utils.save_to_h5(f'{output_dir}/predictions_model{n}.h5', dataset.velocity_colnames[i], v, compression='gzip')"""
+
+
         # Stitch back
         all_preds = np.concatenate(all_preds, axis=0)
         all_uncertainties = np.concatenate(all_uncertainties, axis=0)
@@ -146,8 +159,8 @@ if __name__ == '__main__':
 
            
             with h5py.File(gt_dir, "r") as f_gt:
-                gt = np.squeeze(f_gt[f'{dataset.velocity_colnames[i]}'][()])   # ground truth 3D volume
-                pred = np.squeeze(v)         # our current prediction for this component
+                gt = np.squeeze(f_gt[f'{dataset.velocity_colnames[i]}'][()])
+                pred = np.squeeze(v)
                 error_voxel = np.abs(pred - gt) 
                 prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', f"error_{dataset.velocity_colnames[i]}", error_voxel, compression='gzip')
 

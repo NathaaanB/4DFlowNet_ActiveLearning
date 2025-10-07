@@ -152,8 +152,8 @@ if __name__ == '__main__':
             new_spacing = np.expand_dims(new_spacing, axis=0)
             prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', dataset.dx_colname, new_spacing, compression='gzip')
 
-    results_all_preds = np.concatenate(results_all_preds, axis=1)  
-    # shape: (n_samples, total_patches, px, px, px, 3)
+    #results_all_preds = np.concatenate(results_all_preds, axis=1)  
+    #shape: (n_samples, total_patches, px, px, px, 3)
 
     """for s in range(n_samples):
         for i in range(3):

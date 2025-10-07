@@ -41,7 +41,7 @@ if __name__ == "__main__":
         tf.random.set_seed(model_id * 100 + 7)
         np.random.seed(model_id * 100 + 13)
 
-        initial_learning_rate = np.random.uniform(1e-4, 4e-4) #more diversity in ensemble
+        initial_learning_rate = np.random.uniform(5e-5, 5e-4) #more diversity in ensemble
 
         variables = {
         "initial_learning_rate": initial_learning_rate,
@@ -86,6 +86,4 @@ if __name__ == "__main__":
             for name, value in variables.items():
                 f.write(f"{name} = {value}\n")
 
-
     print("\n✅ Ensemble training finished. Models saved in ../models/")
-

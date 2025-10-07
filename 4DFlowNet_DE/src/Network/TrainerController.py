@@ -43,7 +43,7 @@ class TrainerController:
         v_mag = tf.keras.layers.Input(shape=input_shape, name='v_mag')
         w_mag = tf.keras.layers.Input(shape=input_shape, name='w_mag')
 
-        input_layer = [u,v,w,u_mag, v_mag, w_mag]
+        input_layer = [u, v, w, u_mag, v_mag, w_mag]
         net = SR4DFlowNet(res_increase)
         self.predictions = net.build_network(u, v, w, u_mag, v_mag, w_mag, low_resblock, hi_resblock)
         self.model = tf.keras.Model(input_layer, self.predictions)
@@ -58,7 +58,6 @@ class TrainerController:
             ('val_mse', tf.keras.metrics.Mean(name='val_mse')),
             ('train_div', tf.keras.metrics.Mean(name='train_div')),
             ('val_div', tf.keras.metrics.Mean(name='val_div')),
-
             ('l2_reg_loss', tf.keras.metrics.Mean(name='l2_reg_loss')),
         ])
         self.accuracy_metric = 'val_loss'
@@ -86,10 +85,10 @@ class TrainerController:
             Calculate Total Loss function
             Loss = MSE + weight * div_loss2
         """
-        u, v,w = y_true[...,0],y_true[...,1], y_true[...,2]
-        u_pred,v_pred,w_pred = y_pred[...,0],y_pred[...,1], y_pred[...,2]
+        u, v, w = y_true[...,0],y_true[...,1], y_true[...,2]
+        u_pred, v_pred, w_pred = y_pred[...,0],y_pred[...,1], y_pred[...,2]
 
-        mse = self.calculate_mse(u,v,w, u_pred,v_pred,w_pred)
+        mse = self.calculate_mse(u, v, w, u_pred, v_pred, w_pred)
 
         # if mask is not None:
         # === Separate mse ===
@@ -106,18 +105,6 @@ class TrainerController:
 
         mse = fluid_mse + non_fluid_mse
 
-        # divergence
-        
-        # divergence_loss = loss_utils.calculate_divergence_loss2(u,v,w, u_pred,v_pred,w_pred)
-        # divergence_loss = self.div_weight * divergence_loss
-
-        # fluid_divloss = divergence_loss * mask
-        # fluid_divloss = tf.reduce_sum(fluid_divloss, axis=[1,2,3]) / (tf.reduce_sum(mask, axis=[1,2,3]) + epsilon)
-
-        # non_fluid_divloss = divergence_loss * non_fluid_mask
-        # non_fluid_divloss = tf.reduce_sum(non_fluid_divloss, axis=[1,2,3]) / (tf.reduce_sum(non_fluid_mask, axis=[1,2,3]) + epsilon)
-
-        # divergence_loss = fluid_divloss + non_fluid_divloss
         divergence_loss = 0
 
         # standard without masking

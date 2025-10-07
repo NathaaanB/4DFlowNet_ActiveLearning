@@ -45,7 +45,6 @@ class SR4DFlowNet():
         w_path = conv3d(rb, 3, channel_nr, 'SYMMETRIC', 'relu')
         w_path = conv3d(w_path, 3, 1, 'SYMMETRIC', None)
         
-
         b_out = tf.keras.layers.concatenate([u_path, v_path, w_path])
 
         return b_out
