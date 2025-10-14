@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import h5py
 import time
 import os
 from Network.SR4DFlowNet import SR4DFlowNet
@@ -30,10 +31,11 @@ def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
 if __name__ == '__main__':
     data_dir = '../../data'
     filename = 'aorta03_LR.h5'
+    gt_dir = "../../data/aorta03_HR.h5"
     output_dir = "../result"
-    output_filename = 'aorta_result_model_epoch100.h5'
+    output_filename = 'aorta_random_sampling2.h5'
     
-    model_path = "../models/4DFlowNet_aorta_epoch100/4DFlowNet-best.h5"
+    model_path = "../models/4DFlowNet_ensemble_1_randomsampling2/4DFlowNet_ensemble_1-best.h5"
     # Params
     patch_size = 12
     res_increase = 2
@@ -106,6 +108,12 @@ if __name__ == '__main__':
             
             v = np.expand_dims(v, axis=0) 
             prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', dataset.velocity_colnames[i], v, compression='gzip')
+
+            with h5py.File(gt_dir, "r") as f_gt:
+                gt = np.squeeze(f_gt[f'{dataset.velocity_colnames[i]}'][()])
+                pred = np.squeeze(v)
+                error_voxel = np.abs(pred - gt) 
+                prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', f"error_{dataset.velocity_colnames[i]}", error_voxel, compression='gzip')
 
         if dataset.dx is not None:
             new_spacing = dataset.dx / res_increase

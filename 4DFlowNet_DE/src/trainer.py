@@ -11,16 +11,21 @@ def load_indexes(index_file):
 if __name__ == "__main__":
     QUICKSAVE = True
     data_dir = '../../data'
-    benchmark_file = f'{data_dir}/aortaTest_patches.csv'
+    """benchmark_file = f'{data_dir}/aortaTest_patches.csv'
     training_file = f'{data_dir}/aortaTrain_patches.csv'
-    validate_file = f'{data_dir}/aortaVal_patches.csv'
+    validate_file = f'{data_dir}/aortaVal_patches.csv'"""
+
+    body_data = 'aorta' #cereb, cardiac or aorta
+    benchmark_file = f'{data_dir}/{body_data}Test_patches.csv'
+    training_file = f'{data_dir}/{body_data}Train_patches.csv'
+    validate_file = f'{data_dir}/{body_data}Val_patches.csv'
 
     train_indexes = load_indexes(training_file)
     val_indexes = load_indexes(validate_file)
     benchmark_indexes = load_indexes(benchmark_file)
 
     # Training hyperparameters
-    initial_learning_rate = 2e-4
+    base_learning_rate = 4e-5
     epochs = 80
     batch_size = 20
     mask_threshold = 0.6
@@ -41,7 +46,7 @@ if __name__ == "__main__":
         tf.random.set_seed(model_id * 100 + 7)
         np.random.seed(model_id * 100 + 13)
 
-        initial_learning_rate = np.random.uniform(5e-5, 5e-4) #more diversity in ensemble
+        initial_learning_rate = base_learning_rate
 
         variables = {
         "initial_learning_rate": initial_learning_rate,
@@ -67,11 +72,11 @@ if __name__ == "__main__":
         testset = ph_bench.initialize_dataset_preloaded(benchmark_indexes, shuffle=False)
 
         # Model name → unique per ensemble member
-        network_name = f'4DFlowNet_ensemble_{model_id+1}'
+        network_name = f'4DFlowNet_ensemble_{model_id+1}_{body_data}_ter'
         network = TrainerController(
             patch_size, res_increase, initial_learning_rate, QUICKSAVE,
-            network_name, low_resblock, hi_resblock
-        )
+            network_name, low_resblock, hi_resblock)
+        
         network.init_model_dir()
 
         # Train this ensemble member

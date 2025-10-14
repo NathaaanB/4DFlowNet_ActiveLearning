@@ -33,8 +33,8 @@ if __name__ == "__main__":
         model_file = "4DFlowNet-best.h5"
 
     # Hyperparameters optimisation variables
-    initial_learning_rate = 2e-4
-    epochs =  5
+    initial_learning_rate = 5e-5
+    epochs = 60
     batch_size = 20
     mask_threshold = 0.6
     rotation = 'discrete' #'discrete' or 'affine'
@@ -63,7 +63,10 @@ if __name__ == "__main__":
     }
 
     # Load data file and indexes
+    
     trainset = load_indexes(training_file)
+    len_train_index = len(trainset)
+    trainset = trainset[:len_train_index//2, :]
     valset = load_indexes(validate_file)
     
     # ----------------- TensorFlow stuff -------------------

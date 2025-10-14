@@ -2,14 +2,18 @@ data
 4DFlowNet/result/
 4DFlowNet_MCD/result/
 4DFlowNet_DE/result/
+4DFlowNet_AL/result/
 4DFlowNet/models/
 4DFlowNet_MCD/models/
 4DFlowNet_DE/models/
+4DFlowNet_AL/models/
 4DFlowNet/outputfiles/
 4DFlowNet_MCD/outputfiles/
 4DFlowNet_DE/outputfiles/
+4DFlowNet_AL/outputfiles/
 4DFlowNet_MCD/src/metrics
 4DFlowNet_DE/src/metrics
+4DFlowNet_AL/src/metrics
 sr3d_results.h5
 torch_2.2.1-gpu.sif
 tensorflow_2.6.1-gpu.sif
@@ -19,5 +23,6 @@ terminal_command.txt
 job.sbatch
 job_MCD.sbatch
 job_DE.sbatch
+job_AL.sbatch
 h5_to_vtk.py
 *__pycache__/
