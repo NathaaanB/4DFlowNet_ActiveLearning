@@ -4,7 +4,7 @@ import tensorflow as tf
 import pandas as pd
 import os
 from Network.PatchHandler3D import PatchHandler3D
-from Network.test_TrainerController import TrainerController
+from Network.TrainerController import TrainerController
 from Network.SR4DFlowNet import SR4DFlowNet
 
 def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
