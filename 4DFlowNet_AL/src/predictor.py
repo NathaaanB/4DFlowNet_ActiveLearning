@@ -35,12 +35,12 @@ if __name__ == '__main__':
     data_dir = '../../data'
     gt_dir = "../../data/aorta03_HR.h5"
     filename = 'aorta03_LR.h5'
-    output_dir = "../result"
+    output_dir = "../result/AL2"
     number_of_ensembles = 10
     output_filename = f'aorta_result_DE_M{number_of_ensembles}_AL2.h5'
 
     # Ensemble model paths
-    model_paths = [f"../models/4DFlowNet_ensemble_{i}_AL2/4DFlowNet_ensemble_{i}-best.h5" for i in range(1, number_of_ensembles+1)]
+    model_paths = [f"../models/4D_ensemble_AL2/4DFlowNet_ensemble_{i}_AL2/4DFlowNet_ensemble_{i}-best.h5" for i in range(1, number_of_ensembles+1)]
     
     patch_size = 12
     res_increase = 2
@@ -124,7 +124,7 @@ if __name__ == '__main__':
             all_uncertainties.append(var_pred)
 
         results = np.concatenate(results_all_preds, axis=1)
-        """for n in range(number_of_ensembles):
+        for n in range(number_of_ensembles):
             results_n = results[n]
             for i in range(3):
                 v = pgen._patchup_with_overlap(results_n[..., i], pgen.nr_x, pgen.nr_y, pgen.nr_z)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
                 v = np.expand_dims(v, axis=0)
                 prediction_utils.save_to_h5(f'{output_dir}/predictions_model{n+1}.h5', dataset.velocity_colnames[i], v, compression='gzip')
 
-"""
+
         # Stitch back
         all_preds = np.concatenate(all_preds, axis=0)
         all_uncertainties = np.concatenate(all_uncertainties, axis=0)

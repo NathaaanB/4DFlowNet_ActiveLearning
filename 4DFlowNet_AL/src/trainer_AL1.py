@@ -1,3 +1,4 @@
+from datetime import datetime
 import numpy as np
 import tensorflow as tf
 import pandas as pd
@@ -33,9 +34,13 @@ def load_indexes(index_file):
 if __name__ == "__main__":
     QUICKSAVE = True
     data_dir = '../../data'
-    benchmark_file = f'{data_dir}/aortaTest_patches.csv'
-    training_file = f'{data_dir}/aortaTrain_patches.csv'
-    validate_file = f'{data_dir}/aortaVal_patches.csv'
+    #benchmark_file = f'{data_dir}/aortaTest_patches.csv'
+    #training_file = f'{data_dir}/aortaTrain_patches.csv'
+    #validate_file = f'{data_dir}/aortaVal_patches.csv'
+
+    benchmark_file = f'{data_dir}/test_patches.csv'
+    training_file = f'{data_dir}/train_patches.csv'
+    validate_file = f'{data_dir}/val_patches.csv'
 
     # Training hyperparameters
     base_learning_rate = 4e-5
@@ -48,15 +53,17 @@ if __name__ == "__main__":
     res_increase = 2
     low_resblock = 8
     hi_resblock = 4
-    n_models = 10
+    n_models = 5
     top_fraction = 0.10
     train_size_rate = 0.50
     random_state = 42
-    uncertainty_metric = "var_mean"  # or "var_max"
+    uncertainty_metric = "var_max"  # "var_mean", "var_max"
     AL_loops = 1
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+    folder_name = f'networks_trained_{timestamp}'
     
     comments = "AL"
-
 
     train_index = load_indexes(training_file)
     len_train_index = len(train_index)
@@ -106,7 +113,9 @@ if __name__ == "__main__":
             patch_size, res_increase, initial_learning_rate, QUICKSAVE,
             network_name, low_resblock, hi_resblock
         )
-        network.init_model_dir()
+
+        
+        network.init_model_dir(folder_name)
 
         network.train_network(trainset, valset, n_epoch=epochs_train, testset=testset)
         network_list.append(network)
@@ -156,6 +165,7 @@ if __name__ == "__main__":
             print(threshold)
             df_most_uncertain = df[df[uncertainty_metric] >= threshold]
             df_remaining = df[df[uncertainty_metric] < threshold]
+            df_most_uncertain.to_csv("most_uncertain.csv", index=False)
         elif n_models == 1:
             df_shuffled = df.sample(frac=1, random_state=random_state).reset_index(drop=True)
             n_top = int(len(df) * top_fraction)

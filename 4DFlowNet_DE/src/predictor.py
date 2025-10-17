@@ -37,12 +37,12 @@ if __name__ == '__main__':
     filename = 'aorta03_LR.h5'
     output_dir = "../result"
     number_of_ensembles = 10
-    output_filename = f'aorta_result_DE_M{number_of_ensembles}_ter.h5'
+    output_filename = f'aorta_result_DE_M{number_of_ensembles}_quart.h5'
 
 
     # Ensemble model paths
     group = 1
-    model_paths = [f"../models/4DFlowNet_ensemble_{i}_aorta_ter/4DFlowNet_ensemble_{i}_aorta_ter-best.h5" for i in range(1, 11)]
+    model_paths = [f"../models/4DFlowNet_ensemble_{i}_aorta_bis/4DFlowNet_ensemble_{i}_aorta_ter-best.h5" for i in range(1, 11)]
     
     patch_size = 12
     res_increase = 2
@@ -134,7 +134,7 @@ if __name__ == '__main__':
                 if round_small_values:
                     v[np.abs(v) < dataset.velocity_per_px] = 0
                 v = np.expand_dims(v, axis=0)
-                prediction_utils.save_to_h5(f'{output_dir}/predictions_model{n+1}_ter.h5', dataset.velocity_colnames[i], v, compression='gzip')
+                prediction_utils.save_to_h5(f'{output_dir}/predictions_model{n+1}_quart.h5', dataset.velocity_colnames[i], v, compression='gzip')
 
 
         # Stitch back

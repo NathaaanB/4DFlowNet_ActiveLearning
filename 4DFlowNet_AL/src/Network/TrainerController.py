@@ -43,7 +43,7 @@ class TrainerController:
         v_mag = tf.keras.layers.Input(shape=input_shape, name='v_mag')
         w_mag = tf.keras.layers.Input(shape=input_shape, name='w_mag')
 
-        input_layer = [u, v, w, u_mag, v_mag, w_mag]
+        input_layer = [u,v,w,u_mag, v_mag, w_mag]
         net = SR4DFlowNet(res_increase)
         self.predictions = net.build_network(u, v, w, u_mag, v_mag, w_mag, low_resblock, hi_resblock)
         self.model = tf.keras.Model(input_layer, self.predictions)
@@ -58,6 +58,7 @@ class TrainerController:
             ('val_mse', tf.keras.metrics.Mean(name='val_mse')),
             ('train_div', tf.keras.metrics.Mean(name='train_div')),
             ('val_div', tf.keras.metrics.Mean(name='val_div')),
+
             ('l2_reg_loss', tf.keras.metrics.Mean(name='l2_reg_loss')),
         ])
         self.accuracy_metric = 'val_loss'
@@ -85,10 +86,10 @@ class TrainerController:
             Calculate Total Loss function
             Loss = MSE + weight * div_loss2
         """
-        u, v, w = y_true[...,0],y_true[...,1], y_true[...,2]
-        u_pred, v_pred, w_pred = y_pred[...,0],y_pred[...,1], y_pred[...,2]
+        u, v,w = y_true[...,0],y_true[...,1], y_true[...,2]
+        u_pred,v_pred,w_pred = y_pred[...,0],y_pred[...,1], y_pred[...,2]
 
-        mse = self.calculate_mse(u, v, w, u_pred, v_pred, w_pred)
+        mse = self.calculate_mse(u,v,w, u_pred,v_pred,w_pred)
 
         # if mask is not None:
         # === Separate mse ===
@@ -105,6 +106,18 @@ class TrainerController:
 
         mse = fluid_mse + non_fluid_mse
 
+        # divergence
+        
+        # divergence_loss = loss_utils.calculate_divergence_loss2(u,v,w, u_pred,v_pred,w_pred)
+        # divergence_loss = self.div_weight * divergence_loss
+
+        # fluid_divloss = divergence_loss * mask
+        # fluid_divloss = tf.reduce_sum(fluid_divloss, axis=[1,2,3]) / (tf.reduce_sum(mask, axis=[1,2,3]) + epsilon)
+
+        # non_fluid_divloss = divergence_loss * non_fluid_mask
+        # non_fluid_divloss = tf.reduce_sum(non_fluid_divloss, axis=[1,2,3]) / (tf.reduce_sum(non_fluid_mask, axis=[1,2,3]) + epsilon)
+
+        # divergence_loss = fluid_divloss + non_fluid_divloss
         divergence_loss = 0
 
         # standard without masking
@@ -142,7 +155,7 @@ class TrainerController:
         """
         return (u_pred - u) ** 2 +  (v_pred - v) ** 2 + (w_pred - w) ** 2
 
-    def init_model_dir(self):
+    def init_model_dir(self, folder_name):
         """
             Create model directory to save the weights with a [network_name]_[datetime] format
             Also prepare logfile and tensorboard summary within the directory.
@@ -150,7 +163,7 @@ class TrainerController:
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
         self.unique_model_name = f'{self.network_name}_{timestamp}'
 
-        self.model_dir = f"../models/{self.unique_model_name}"
+        self.model_dir = f"../models/{folder_name}/{self.unique_model_name}"
         # Do not use .ckpt on the model_path
         self.model_path = f"{self.model_dir}/{self.network_name}"
 
@@ -245,7 +258,95 @@ class TrainerController:
         for key in self.loss_metrics.keys():
             self.loss_metrics[key].reset_states()
 
-    def train_network(self, trainset, valset, n_epoch, testset=None):
+    def train_network(self, trainset, valset, n_epoch, testset=None, retrain = False):
+        """
+            Main training function. Receives trainining and validation TF dataset.
+        """
+        # ----- Run the training -----
+        print("==================== TRAINING =================")
+        print(f'Learning rate {self.optimizer.lr.numpy():.7f}')
+        print(f"Start training at {time.ctime()} - {self.unique_model_name}\n")
+        start_time = time.time()
+        
+        # Setup acc and data count
+        if retrain:
+            previous_loss = self.loss_metrics[self.accuracy_metric].result()
+        else:
+            previous_loss = np.inf
+        total_batch_train = tf.data.experimental.cardinality(trainset).numpy()
+        total_batch_val = tf.data.experimental.cardinality(valset).numpy()
+
+        for epoch in range(n_epoch):
+            print("Epoch :", epoch)
+            # ------------------------------- Training -------------------------------
+            # self.adjust_learning_rate(epoch)
+
+            # Reset the metrics at the start of the next epoch
+            self.reset_metrics()
+
+            start_loop = time.time()
+            # --- Training ---
+            for i, data_pairs in enumerate(trainset):
+                # Train the network
+                self.train_step(data_pairs)
+                message = f"Epoch {epoch+1} Train batch {i+1}/{total_batch_train} | loss: {self.loss_metrics['train_loss'].result():.5f} ({self.loss_metrics['train_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
+                print(f"\r{message}", end='')
+
+            # --- Validation ---
+            for i, data_pairs in enumerate(valset):
+                self.test_step(data_pairs)
+                message = f"Epoch {epoch+1} Validation batch {i+1}/{total_batch_val} | loss: {self.loss_metrics['val_loss'].result():.5f} ({self.loss_metrics['val_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
+                print(f"\r{message}", end='')
+
+            # --- Epoch logging ---
+            message = f"\rEpoch {epoch+1} Train loss: {self.loss_metrics['train_loss'].result():.5f} ({self.loss_metrics['train_accuracy'].result():.1f} %), Val loss: {self.loss_metrics['val_loss'].result():.5f} ({self.loss_metrics['val_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
+            
+            loss_values = []
+            # Get the loss values from the loss_metrics dict
+            for key, value in self.loss_metrics.items():
+                # TODO: handle formatting here
+                loss_values.append(f'{value.result():.5f}')
+            loss_str = ','.join(loss_values)
+            log_line = f"{epoch+1},{loss_str},{self.optimizer.lr.numpy():.6f},{time.time()-start_loop:.1f}"
+            
+
+            self._update_summary_logging(epoch)
+
+            # --- Save criteria ---
+            if self.loss_metrics[self.accuracy_metric].result() < previous_loss:
+                self.save_best_model()
+                
+                # Update best acc
+                previous_loss = self.loss_metrics[self.accuracy_metric].result()
+                
+                # logging
+                message  += ' **' # Mark as saved
+                log_line += ',**'
+
+                # Benchmarking
+                if self.QUICKSAVE_ENABLED and testset is not None:
+                    quick_loss, quick_accuracy, quick_mse, quick_div = self.quicksave(testset, epoch+1)
+                    quick_loss, quick_accuracy, quick_mse, quick_div = np.mean(quick_loss), np.mean(quick_accuracy), np.mean(quick_mse), np.mean(quick_div)
+
+                    message  += f' Benchmark loss: {quick_loss:.5f} ({quick_accuracy:.1f} %)'
+                    log_line += f', {quick_loss:.7f}, {quick_accuracy:.2f}%, {quick_mse:.7f}, {quick_div:.7f}'
+            # Logging
+            print(message)
+            utility.log_to_file(self.logfile, log_line+"\n")
+            # /END of epoch loop
+
+        # End
+        hrs, mins, secs = utility.calculate_time_elapsed(start_time)
+        message =  f"\nTraining {self.network_name} completed! - name: {self.unique_model_name}"
+        message += f"\nTotal training time: {hrs} hrs {mins} mins {secs} secs."
+        message += f"\nFinished at {time.ctime()}"
+        message += f"\n==================== END TRAINING ================="
+        utility.log_to_file(self.logfile, message)
+        print(message)
+        
+        # Finish!
+
+    def train_network_AL(self, trainset, valset, n_epoch_w_AL, testset=None):
         """
             Main training function. Receives trainining and validation TF dataset.
         """
@@ -260,7 +361,7 @@ class TrainerController:
         total_batch_train = tf.data.experimental.cardinality(trainset).numpy()
         total_batch_val = tf.data.experimental.cardinality(valset).numpy()
 
-        for epoch in range(n_epoch):
+        for epoch in range(n_epoch_w_AL):
             print("Epoch :", epoch)
             # ------------------------------- Training -------------------------------
             # self.adjust_learning_rate(epoch)
