@@ -3,26 +3,26 @@ import numpy as np
 import csv
 
 def write_header(filename):
-    fieldnames = ['source', 'target','index', 'start_x', 'start_y', 'start_z', 'rotate', 'rotation_plane', 'rotation_degree_idx', 'coverage']
+    fieldnames = ['source', 'target','index', 'start_x', 'start_y', 'start_z', 'rotate', 'rotation_plane', 'rotation_degree_idx', 'coverage', 'compartment']
     with open(filename, mode='w', newline='') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         writer.writeheader()
 
 
-def generate_random_patches(input_filename, target_filename, output_filename, index, n_patch, binary_mask, patch_size, minimum_coverage, empty_patch_allowed, apply_all_rotation=True):
+def generate_random_patches(input_filename, target_filename, output_filename, index, n_patch, binary_mask, patch_size, minimum_coverage, empty_patch_allowed, body_part, apply_all_rotation=True):
     empty_patch_counter = 0
             
     # foreach row, create n number of patches
     j = 0
     not_found = 0
     while j < n_patch:
-        if not_found > 100:
+        if not_found > 500:
             print(f"Cannot find enough patches above {minimum_coverage} coverage, please lower the minimum_coverage")
             break
 
         can_still_take_empty_patch = empty_patch_counter < empty_patch_allowed
         # print('patch number', j)
-        patch = PatchData(input_filename, target_filename, patch_size)
+        patch = PatchData(input_filename, target_filename, patch_size, body_part)
         
         # default, no rotation
         patch.create_random_patch(binary_mask, index)
@@ -33,7 +33,7 @@ def generate_random_patches(input_filename, target_filename, output_filename, in
         if patch.coverage < minimum_coverage:
             if can_still_take_empty_patch:
                 
-                print('Taking this empty one',patch.coverage)
+                print('Taking this empty one', patch.coverage)
                 empty_patch_counter += 1
                 
             else:
@@ -68,7 +68,7 @@ def generate_random_patches(input_filename, target_filename, output_filename, in
     # /end of while n_patch
     
 class PatchData:
-    def __init__(self, source_file, target_file, patch_size):
+    def __init__(self, source_file, target_file, patch_size, body_part):
         self.patch_size = patch_size
 
         self.source_file = source_file
@@ -81,6 +81,7 @@ class PatchData:
         self.rotation_plane = 0
         self.rotation_degree_idx = 0
         self.coverage = 0
+        self.body_part = body_part
 
     def create_random_patch(self, u, index):
         self.idx = index
@@ -117,10 +118,10 @@ class PatchData:
         return is_rotate, plane_nr, degree_idx
 
     def write_to_csv(self, output_filename):
-        fieldnames = ['source', 'target', 'index', 'start_x', 'start_y', 'start_z', 'rotate', 'rotation_plane', 'rotation_degree_idx', 'coverage']
+        fieldnames = ['source', 'target', 'index', 'start_x', 'start_y', 'start_z', 'rotate', 'rotation_plane', 'rotation_degree_idx', 'coverage', 'compartment']
         with open(output_filename, mode='a', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             writer.writerow({'source': self.source_file, 'target': self.target_file, 'index': self.idx, 
             'start_x': self.start_x, 'start_y': self.start_y, 'start_z': self.start_z,
             'rotate': self.rotate, 'rotation_plane': self.rotation_plane, 'rotation_degree_idx': self.rotation_degree_idx,
-            'coverage': self.coverage})
+            'coverage': self.coverage, 'compartment': self.body_part})

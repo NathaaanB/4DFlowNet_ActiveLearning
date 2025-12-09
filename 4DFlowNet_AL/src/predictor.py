@@ -29,19 +29,22 @@ def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
 
     return model
 
-
 if __name__ == '__main__':
     # Data
     data_dir = '../../data'
     gt_dir = "../../data/aorta03_HR.h5"
     filename = 'aorta03_LR.h5'
-    output_dir = "../result/AL2"
-    number_of_ensembles = 10
-    output_filename = f'aorta_result_DE_M{number_of_ensembles}_AL2.h5'
+    output_dir = "../result/RS2_top2"
+    output_filename = 'test.h5'
+    root_folder = "../models/networks_trained_RS2_top2_1/AL_loop_10"
 
-    # Ensemble model paths
-    model_paths = [f"../models/4D_ensemble_AL2/4DFlowNet_ensemble_{i}_AL2/4DFlowNet_ensemble_{i}-best.h5" for i in range(1, number_of_ensembles+1)]
-    
+    paths = [os.path.join(root_folder, name)
+        for name in os.listdir(root_folder)
+        if os.path.isdir(os.path.join(root_folder, name))]
+
+    model_paths = [os.path.join(path, f'4DFlowNet_ensemble_{i+1}-best.h5') for i, path in enumerate(paths)]
+    number_of_ensembles = len(model_paths)
+
     patch_size = 12
     res_increase = 2
     low_resblock = 8
@@ -74,7 +77,7 @@ if __name__ == '__main__':
 
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-
+        
     # Loop rows
     for nrow in range(0, nr_rows):
         print("\n--------------------------")
@@ -124,6 +127,7 @@ if __name__ == '__main__':
             all_uncertainties.append(var_pred)
 
         results = np.concatenate(results_all_preds, axis=1)
+        """
         for n in range(number_of_ensembles):
             results_n = results[n]
             for i in range(3):
@@ -134,7 +138,7 @@ if __name__ == '__main__':
                 v = np.expand_dims(v, axis=0)
                 prediction_utils.save_to_h5(f'{output_dir}/predictions_model{n+1}.h5', dataset.velocity_colnames[i], v, compression='gzip')
 
-
+        """
         # Stitch back
         all_preds = np.concatenate(all_preds, axis=0)
         all_uncertainties = np.concatenate(all_uncertainties, axis=0)

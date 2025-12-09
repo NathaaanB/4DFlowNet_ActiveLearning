@@ -28,13 +28,13 @@ def prepare_network(patch_size, res_increase, low_resblock, hi_resblock):
     return model
 
 # ======================== Main script ========================
-dr = 5
+dr = 7
 
 if __name__ == '__main__':
     data_dir = '../../data'
     filename = 'aorta03_LR.h5'
-    output_dir = "../result"
-    output_filename = f'Dropout_aorta_dr{dr}_lr4e-5.h5'
+    output_dir = f"../result/aorta_results_MCD_dr{dr}"
+    output_filename = f'aorta_results_MCD_dr{dr}_lr4e-5.h5'
     model_path = f"../models/4DFlowNet_dr{dr}_lr4e-5/4DFlowNet-best.h5"
 
     patch_size = 12
@@ -77,6 +77,7 @@ if __name__ == '__main__':
         # Initialize result arrays
         results_mean = np.zeros((0, patch_size*res_increase, patch_size*res_increase, patch_size*res_increase, 3))
         results_epi_unc = np.zeros_like(results_mean)
+        results_aleatoric_unc = np.zeros_like(results_mean)
         results_all_preds = []
 
         start_time = time.time()
@@ -113,12 +114,23 @@ if __name__ == '__main__':
             # Append batch results
             results_mean = np.append(results_mean, mean_pred, axis=0)
             results_epi_unc = np.append(results_epi_unc, epi_unc, axis=0)
-            results_aleatoric_unc = np.append(results_epi_unc, aleatoric_unc, axis=0)
+            results_aleatoric_unc = np.append(results_aleatoric_unc, aleatoric_unc, axis=0)
 
             time_taken = time.time() - start_time
             print(f"\rProcessed {min(current_idx+batch_size, data_size)}/{data_size} patches - Elapsed: {time_taken:.2f}s", end='\r')
 
         print(f"\nAll patches processed - Total elapsed: {time.time()-start_time:.2f}s")
+
+        results = np.concatenate(results_all_preds, axis=1)
+        for n in range(n_samples):
+            results_n = results[n]
+            for i in range(3):
+                v = pgen._patchup_with_overlap(results_n[..., i], pgen.nr_x, pgen.nr_y, pgen.nr_z)
+                v = v * dataset.venc
+                if round_small_values:
+                    v[np.abs(v) < dataset.velocity_per_px] = 0
+                v = np.expand_dims(v, axis=0)
+                prediction_utils.save_to_h5(f'{output_dir}/predictions_model{n+1}.h5', dataset.velocity_colnames[i], v, compression='gzip')
 
         # ========== Reconstruct full volume ==========
         for i in range(3):
@@ -135,9 +147,9 @@ if __name__ == '__main__':
             v_epi = np.expand_dims(v_epi, axis=0)
             prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', f"uncertainty_{dataset.velocity_colnames[i]}", v_epi, compression='gzip')
 
-            #v_alea = pgen._patchup_with_overlap(results_aleatoric_unc[..., i], pgen.nr_x, pgen.nr_y, pgen.nr_z)
-            #v_alea = np.expand_dims(v_epi, axis=0)
-            #prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', f"aleatoric_{dataset.velocity_colnames[i]}", v_alea, compression='gzip')
+            v_alea = pgen._patchup_with_overlap(results_aleatoric_unc[..., i], pgen.nr_x, pgen.nr_y, pgen.nr_z)
+            v_alea = np.expand_dims(v_alea, axis=0)
+            prediction_utils.save_to_h5(f'{output_dir}/{output_filename}', f"aleatoric_{dataset.velocity_colnames[i]}", v_alea, compression='gzip')
 
             gt_dir = "../../data/aorta03_HR.h5"
             with h5py.File(gt_dir, "r") as f_gt:

@@ -12,6 +12,7 @@ import shutil
 import os
 from .SR4DFlowNet import SR4DFlowNet
 from . import utility, h5util, loss_utils
+from tqdm import tqdm
 
 class TrainerController:
     # constructor
@@ -86,8 +87,8 @@ class TrainerController:
             Calculate Total Loss function
             Loss = MSE + weight * div_loss2
         """
-        u, v,w = y_true[...,0],y_true[...,1], y_true[...,2]
-        u_pred,v_pred,w_pred = y_pred[...,0],y_pred[...,1], y_pred[...,2]
+        u, v, w = y_true[...,0],y_true[...,1], y_true[...,2]
+        u_pred, v_pred, w_pred = y_pred[...,0],y_pred[...,1], y_pred[...,2]
 
         mse = self.calculate_mse(u,v,w, u_pred,v_pred,w_pred)
 
@@ -207,16 +208,16 @@ class TrainerController:
 
     @tf.function
     def train_step(self, data_pairs):
-        u, v, w, u_hr,v_hr, w_hr, u_mag, v_mag, w_mag, venc, mask = data_pairs
+        u, v, w, u_hr, v_hr, w_hr, u_mag, v_mag, w_mag, venc, mask = data_pairs
         hires = tf.concat((u_hr, v_hr, w_hr), axis=-1)
         with tf.GradientTape() as tape:
             
             # training=True is only needed if there are layers with different
             # behavior during training versus inference (e.g. Dropout).
-            print(u_mag.shape, v_mag.shape, w_mag.shape)
+            #print(u_mag.shape, v_mag.shape, w_mag.shape)
             input_data = [u, v, w, u_mag, v_mag, w_mag]
             predictions = self.model(input_data, training=True)
-            loss = self.calculate_and_update_metrics(hires, predictions, mask, 'train')
+            loss = self.calculate_and_update_metrics_train(hires, predictions, mask, 'train')
             
         # Get the gradients
         gradients = tape.gradient(loss, self.model.trainable_variables)
@@ -227,25 +228,35 @@ class TrainerController:
     def test_step(self, data_pairs):
         u, v, w, u_hr,v_hr, w_hr, u_mag, v_mag, w_mag, venc, mask = data_pairs
         hires = tf.concat((u_hr, v_hr, w_hr), axis=-1)
-        # training=False is only needed if there are layers with different
-        # behavior during training versus inference (e.g. Dropout).
         input_data = [u,v,w, u_mag, v_mag, w_mag]
         predictions = self.model(input_data, training=False)
         
-        self.calculate_and_update_metrics(hires, predictions, mask, 'val')
+        self.calculate_and_update_metrics_val(hires, predictions, mask, 'val')
        
         return predictions
+    
+    @tf.function
+    def calculate_and_update_metrics_train(self, hires, predictions, mask, metric_set):
+        loss, mse, divloss = self.loss_function(hires, predictions, mask)
+        rel_error = self.accuracy_function(hires, predictions, mask)
 
-    def calculate_and_update_metrics(self, hires, predictions, mask, metric_set):
+        l2_reg_loss = self.calculate_regularizer_loss()
+        self.loss_metrics[f'l2_reg_loss'].update_state(l2_reg_loss)
+        loss += l2_reg_loss
+
+        # Update the loss and accuracy
+        self.loss_metrics[f'{metric_set}_loss'].update_state(loss)
+
+        self.loss_metrics[f'{metric_set}_mse'].update_state(mse)
+        self.loss_metrics[f'{metric_set}_div'].update_state(divloss)
+        self.loss_metrics[f'{metric_set}_accuracy'].update_state(rel_error)
+        return loss
+    
+    @tf.function
+    def calculate_and_update_metrics_val(self, hires, predictions, mask, metric_set):
         loss, mse, divloss = self.loss_function(hires, predictions, mask)
         rel_error = self.accuracy_function(hires, predictions, mask)
         
-        if metric_set == 'train':
-            l2_reg_loss = self.calculate_regularizer_loss()
-            self.loss_metrics[f'l2_reg_loss'].update_state(l2_reg_loss)
-
-            loss += l2_reg_loss
-
         # Update the loss and accuracy
         self.loss_metrics[f'{metric_set}_loss'].update_state(loss)
 
@@ -289,14 +300,14 @@ class TrainerController:
             for i, data_pairs in enumerate(trainset):
                 # Train the network
                 self.train_step(data_pairs)
-                message = f"Epoch {epoch+1} Train batch {i+1}/{total_batch_train} | loss: {self.loss_metrics['train_loss'].result():.5f} ({self.loss_metrics['train_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
-                print(f"\r{message}", end='')
+                #message = f"Epoch {epoch+1} Train batch {i+1}/{total_batch_train} | loss: {self.loss_metrics['train_loss'].result():.5f} ({self.loss_metrics['train_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
+                #print(f"\r{message}", end='')
 
             # --- Validation ---
             for i, data_pairs in enumerate(valset):
                 self.test_step(data_pairs)
-                message = f"Epoch {epoch+1} Validation batch {i+1}/{total_batch_val} | loss: {self.loss_metrics['val_loss'].result():.5f} ({self.loss_metrics['val_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
-                print(f"\r{message}", end='')
+                #message = f"Epoch {epoch+1} Validation batch {i+1}/{total_batch_val} | loss: {self.loss_metrics['val_loss'].result():.5f} ({self.loss_metrics['val_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"
+                #print(f"\r{message}", end='')
 
             # --- Epoch logging ---
             message = f"\rEpoch {epoch+1} Train loss: {self.loss_metrics['train_loss'].result():.5f} ({self.loss_metrics['train_accuracy'].result():.1f} %), Val loss: {self.loss_metrics['val_loss'].result():.5f} ({self.loss_metrics['val_accuracy'].result():.1f} %) - {time.time()-start_loop:.1f} secs"

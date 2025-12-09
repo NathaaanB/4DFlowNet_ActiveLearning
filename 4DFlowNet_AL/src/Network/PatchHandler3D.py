@@ -52,10 +52,6 @@ class PatchHandler3D():
         if shuffle:
             np.random.shuffle(preloaded_data)
 
-        #dataset = tf.data.Dataset.from_tensor_slices(preloaded_data)
-
-        # Transpose list of tuples -> tuple of lists
-
         components = list(zip(*preloaded_data))  # List of 9 elements, each a list of tensors 
         components = [np.stack(arr, axis=0) for arr in components]  # Make each a proper array
 

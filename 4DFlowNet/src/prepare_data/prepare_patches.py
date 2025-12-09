@@ -12,18 +12,18 @@ def load_data(input_filepath):
 
 
 if __name__ == "__main__": 
-    patch_size = 16 # Patch size, this will be checked to make sure the generated patches do not go out of bounds
-    n_patch = 10    # number of patch per time frame
+    patch_size = 12 # Patch size, this will be checked to make sure the generated patches do not go out of bounds
+    n_patch = 8    # number of patch per time frame
     n_empty_patch_allowed = 0 # max number of empty patch per frame
-    all_rotation = False # When true, include 90, 180 and 270 rotation for each patch. When False, only include 1 random rotation.
+    all_rotation = True # When true, include 90, 180 and 270 rotation for each patch. When False, only include 1 random rotation.
     mask_threshold = 0.4 # Threshold for non-binary mask 
-    minimum_coverage = 0.2 # Minimum fluid region within a patch. Any patch with less than this coverage will not be taken. Range 0-1
+    minimum_coverage = 0.05 # Minimum fluid region within a patch. Any patch with less than this coverage will not be taken. Range 0-1
 
-    base_path = '../../data/aorta_CFD'
-    lr_file = 'example_data.h5' #LowRes velocity data
-    hr_file = 'example_data_HR.h5' #HiRes velocity data
-    output_filename = f'{base_path}/test{patch_size}.csv'
-
+    base_path = '../../../data'
+    base_file = 'HV06_05mm3_20ms'
+    lr_file = f'{base_file}_LR.h5' #LowRes velocity data
+    hr_file = f'{base_file}.h5' #HiRes velocity data
+    output_filename = f'{base_path}/{base_file}Test.csv'
     
     # Load the data
     input_filepath = f'{base_path}/{lr_file}'

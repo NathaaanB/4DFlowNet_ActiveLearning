@@ -12,17 +12,18 @@ def load_data(input_filepath):
 
 
 if __name__ == "__main__": 
-    patch_size = 16 # Patch size, this will be checked to make sure the generated patches do not go out of bounds
-    n_patch = 10    # number of patch per time frame
-    n_empty_patch_allowed = 0 # max number of empty patch per frame
+    patch_size = 12 # Patch size, this will be checked to make sure the generated patches do not go out of bounds
+    n_patch = 100    # number of patch per time frame
+    n_empty_patch_allowed = 3 # max number of empty patch per frame
     all_rotation = False # When true, include 90, 180 and 270 rotation for each patch. When False, only include 1 random rotation.
     mask_threshold = 0.4 # Threshold for non-binary mask 
-    minimum_coverage = 0.2 # Minimum fluid region within a patch. Any patch with less than this coverage will not be taken. Range 0-1
+    minimum_coverage = 0.05 # Minimum fluid region within a patch. Any patch with less than this coverage will not be taken. Range 0-1
+    body_part = 'aorta'  # Body part label to be saved in the CSV file
 
-    base_path = '../../data/aorta_CFD'
-    lr_file = 'example_data.h5' #LowRes velocity data
-    hr_file = 'example_data_HR.h5' #HiRes velocity data
-    output_filename = f'{base_path}/test{patch_size}.csv'
+    base_path = '../../../data/'
+    lr_file = 'aorta03_LR.h5' #LowRes velocity data
+    hr_file = 'aorta03_HR.h5' #HiRes velocity data
+    output_filename = f'{base_path}/aorta03test{patch_size}.csv'
 
     
     # Load the data
@@ -34,7 +35,7 @@ if __name__ == "__main__":
 
     # because the data is homogenous in 1 table, we only need the first data
     with h5py.File(input_filepath, mode = 'r' ) as hdf5:
-        mask = np.asarray(hdf5['mask'][0])
+        mask = np.asarray(hdf5['mask'])
     # We basically need the mask on the lowres data, the patches index are retrieved based on the LR data.
     print("Overall shape", mask.shape)
 
@@ -44,5 +45,5 @@ if __name__ == "__main__":
     # Generate random patches for all time frames
     for index in file_indexes:
         print('Generating patches for row', index)
-        pd.generate_random_patches(lr_file, hr_file, output_filename, index, n_patch, binary_mask, patch_size, minimum_coverage, n_empty_patch_allowed, all_rotation)
+        pd.generate_random_patches(lr_file, hr_file, output_filename, index, n_patch, binary_mask, patch_size, minimum_coverage, n_empty_patch_allowed, body_part, all_rotation)
     print(f'Done. File saved in {output_filename}')
